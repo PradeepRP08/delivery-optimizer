@@ -144,17 +144,3 @@ Ratings are nearly equal because the greedy algorithm balanced workload perfectl
 ![alt text](image-11.png)
 
 
----
-
-
-
-```bash
-python3 optimizer.py
-```
-
-Requirements: `pandas`, `numpy`, `scipy`, `scikit-learn`  
-(all standard; no network install required)
-
-Open `route_map.html` in Chrome / Firefox — no web server needed.
-
----
