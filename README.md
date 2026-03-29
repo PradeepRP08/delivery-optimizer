@@ -141,7 +141,7 @@ Ratings are nearly equal because the greedy algorithm balanced workload perfectl
 - **Agent toggle** buttons to show/hide individual agents
 - **Agent cards** with star ratings, KPIs, progress bars (click to zoom to route)
 - Dark CartoDB tile layer for professional appearance
-![alt text](image-1.png)
+![alt text](image-11.png)
 
 
 ---
