@@ -158,14 +158,3 @@ Requirements: `pandas`, `numpy`, `scipy`, `scikit-learn`
 Open `route_map.html` in Chrome / Firefox — no web server needed.
 
 ---
-
-##  Evaluation Criteria Coverage
-
-| Criterion | Weight | What was done |
-|-----------|--------|---------------|
-| Logic Correctness | 30% | Correct priority sort, greedy balance, flag fixes |
-| Code Quality | 20% | Modular, typed, documented, 9 clean sections |
-| Algorithm Approach | 20% | Greedy min-heap O(N log K) + 3 ML models |
-| Output | 15% | 5 output files including interactive HTML map |
-| Documentation | 10% | This README |
-| Bonus | 5% | Z-score cleaning, ML, K-Means clustering, Leaflet map, agent ratings |
