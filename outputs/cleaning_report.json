@@ -1,0 +1,81 @@
+{
+  "raw_rows": 25000,
+  "clean_rows": 25000,
+  "rows_removed": 0,
+  "outlier_detail": {
+    "distance_km": {
+      "max_z_score": 1.6988,
+      "iqr_outliers": 0,
+      "z_outliers": 0,
+      "total_removed": 0
+    },
+    "package_weight_kg": {
+      "max_z_score": 1.7035,
+      "iqr_outliers": 0,
+      "z_outliers": 0,
+      "total_removed": 0
+    },
+    "delivery_cost": {
+      "max_z_score": 1.7656,
+      "iqr_outliers": 0,
+      "z_outliers": 0,
+      "total_removed": 0
+    }
+  },
+  "ml_results": {
+    "rf_accuracy": 0.9962,
+    "rf_f1": 0.9928,
+    "gb_r2": 0.9999,
+    "gb_mae": 2.34,
+    "feature_importances": {
+      "time_efficiency": 0.4853,
+      "delivery_rating": 0.2901,
+      "delivery_mode_enc": 0.113,
+      "priority_rank": 0.0696,
+      "weather_condition_enc": 0.0148,
+      "delivery_cost": 0.0103,
+      "distance_km": 0.0093,
+      "package_weight_kg": 0.0043,
+      "vehicle_type_enc": 0.0017,
+      "region_enc": 0.0015
+    }
+  },
+  "agent_summary": [
+    {
+      "agent": "Agent Alpha",
+      "total_deliveries": 8307,
+      "total_distance_km": 1253153.7,
+      "on_time_rate_%": 72.94,
+      "avg_customer_rating": 3.67,
+      "high_priority_pct_%": 50.21,
+      "avg_cost_per_delivery": 867.23,
+      "failure_rate_%": 5.27,
+      "avg_perf_score": 78.0,
+      "agent_star_rating": 3.81
+    },
+    {
+      "agent": "Agent Beta",
+      "total_deliveries": 8334,
+      "total_distance_km": 1253253.7,
+      "on_time_rate_%": 73.57,
+      "avg_customer_rating": 3.665,
+      "high_priority_pct_%": 50.05,
+      "avg_cost_per_delivery": 865.06,
+      "failure_rate_%": 5.26,
+      "avg_perf_score": 78.23,
+      "agent_star_rating": 3.83
+    },
+    {
+      "agent": "Agent Gamma",
+      "total_deliveries": 8359,
+      "total_distance_km": 1253353.5,
+      "on_time_rate_%": 73.47,
+      "avg_customer_rating": 3.664,
+      "high_priority_pct_%": 49.89,
+      "avg_cost_per_delivery": 862.56,
+      "failure_rate_%": 5.41,
+      "avg_perf_score": 78.16,
+      "agent_star_rating": 3.82
+    }
+  ]
+}

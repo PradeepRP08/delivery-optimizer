@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>DeliverIQ — Agent Route Map</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#1a1a2e;color:#e2e8f0;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+/* HEADER */
+header{background:#16213e;padding:10px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #0f3460;flex-shrink:0;box-shadow:0 2px 12px rgba(0,0,0,0.4);}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand-icon{width:36px;height:36px;background:linear-gradient(135deg,#ff3e6c,#a78bfa);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.75rem;color:#fff;}
+.brand-name{font-size:1.3rem;font-weight:800;letter-spacing:.08em;color:#f0f0f8;}
+.brand-name span{color:#ff3e6c;}
+.header-right{display:flex;gap:8px;align-items:center;}
+.badge{padding:4px 10px;border-radius:3px;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;}
+.badge-green{background:rgba(0,229,184,.15);border:1px solid rgba(0,229,184,.4);color:#00e5b8;}
+.badge-muted{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#94a3b8;font-size:.65rem;}
+
+/* LAYOUT */
+.main{display:flex;flex:1;overflow:hidden;}
+
+/* SIDEBAR */
+#sidebar{width:300px;background:#16213e;overflow-y:auto;flex-shrink:0;border-right:1px solid #0f3460;display:flex;flex-direction:column;gap:0;}
+#sidebar::-webkit-scrollbar{width:4px;}
+#sidebar::-webkit-scrollbar-track{background:#16213e;}
+#sidebar::-webkit-scrollbar-thumb{background:#0f3460;border-radius:2px;}
+
+.sidebar-section{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);}
+.sidebar-section-title{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:#64748b;margin-bottom:8px;font-weight:600;}
+
+/* FILTER BUTTONS */
+.filter-row{display:flex;gap:5px;flex-wrap:wrap;}
+.fbtn{padding:4px 10px;border-radius:4px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#94a3b8;font-size:.68rem;cursor:pointer;transition:all .15s;font-weight:500;}
+.fbtn:hover{background:rgba(255,255,255,.1);}
+.fbtn.active{background:#0f3460;border-color:#3b82f6;color:#93c5fd;}
+
+/* AGENT CARDS */
+.agent-card{margin:10px 12px;border-radius:8px;border:2px solid transparent;cursor:pointer;transition:all .2s;overflow:hidden;background:#0f172a;}
+.agent-card:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(0,0,0,.5);}
+.agent-card.active{box-shadow:0 0 0 2px var(--ac);}
+.agent-card-hdr{padding:10px 12px;display:flex;align-items:center;gap:8px;}
+.ac-dot{width:12px;height:12px;border-radius:50%;background:var(--ac);flex-shrink:0;}
+.ac-name{font-weight:700;font-size:.88rem;flex:1;}
+.ac-stars{color:#fbbf24;font-size:.95rem;letter-spacing:1px;}
+.ac-body{padding:0 12px 12px;}
+.ac-stat{display:flex;justify-content:space-between;font-size:.72rem;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);}
+.ac-stat:last-child{border:none;}
+.ac-key{color:#64748b;}
+.ac-val{font-weight:600;color:#e2e8f0;}
+.ac-bar{height:4px;background:rgba(255,255,255,.06);border-radius:2px;margin:6px 0 2px;overflow:hidden;}
+.ac-fill{height:100%;border-radius:2px;background:var(--ac);}
+.ac-bar-label{font-size:.6rem;color:#475569;}
+
+/* ROUTE ORDER TAG */
+.route-order{display:flex;flex-wrap:wrap;gap:3px;margin:6px 0 2px;}
+.rt{padding:2px 6px;border-radius:3px;font-size:.58rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:rgba(255,255,255,.07);color:#94a3b8;}
+.rt-arrow{font-size:.58rem;color:#334155;align-self:center;}
+
+/* LEGEND */
+.legend-items{display:flex;flex-direction:column;gap:5px;}
+.li{display:flex;align-items:center;gap:7px;font-size:.7rem;color:#94a3b8;}
+.li-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.li-line{width:18px;height:3px;border-radius:2px;flex-shrink:0;}
+
+/* MAP */
+#map{flex:1;}
+
+/* LEAFLET POPUP */
+.leaflet-popup-content-wrapper{
+  background:#1e293b !important;
+  border:1px solid #334155 !important;
+  border-radius:10px !important;
+  color:#e2e8f0 !important;
+  box-shadow:0 8px 32px rgba(0,0,0,.6) !important;
+  min-width:230px;
+}
+.leaflet-popup-tip{background:#1e293b !important;}
+.leaflet-popup-content{margin:12px 14px !important;}
+.pu-title{font-weight:700;font-size:.95rem;margin-bottom:5px;display:flex;align-items:center;gap:6px;}
+.pu-agent{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.65rem;font-weight:700;margin-bottom:7px;}
+.pu-row{display:flex;justify-content:space-between;font-size:.75rem;padding:2.5px 0;border-bottom:1px solid rgba(255,255,255,.07);}
+.pu-row:last-child{border:none;}
+.pu-k{color:#64748b;}
+.pu-v{font-weight:600;}
+.pu-stars{color:#fbbf24;}
+
+/* STOP NUMBER badge on marker */
+.stop-num{
+  position:absolute;top:-6px;right:-6px;
+  background:#0f172a;border:1px solid rgba(255,255,255,.2);
+  border-radius:50%;width:16px;height:16px;
+  font-size:.52rem;font-weight:800;color:#e2e8f0;
+  display:flex;align-items:center;justify-content:center;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-icon">DQ</div>
+    <div>
+      <div class="brand-name">Deliver<span>IQ</span></div>
+      <div style="font-size:.6rem;color:#475569;letter-spacing:.1em;margin-top:1px;">LOGISTICS ROUTE INTELLIGENCE</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="badge badge-green">🗺 Street Map</span>
+    <span class="badge badge-muted">25,000 Deliveries · 3 Agents · India</span>
+  </div>
+</header>
+
+<div class="main">
+<div id="sidebar">
+
+  <!-- Filters -->
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Show Agents</div>
+    <div class="filter-row" id="agent-toggles"></div>
+  </div>
+
+  <!-- Agent Cards -->
+  <div id="agent-cards"></div>
+
+  <!-- Legend -->
+  <div class="sidebar-section" style="margin-top:auto;">
+    <div class="sidebar-section-title">Legend</div>
+    <div class="legend-items">
+      <div class="li"><div class="li-line" style="background:#3b82f6"></div> Agent Alpha route</div>
+      <div class="li"><div class="li-line" style="background:#f59e0b"></div> Agent Beta route</div>
+      <div class="li"><div class="li-line" style="background:#10b981"></div> Agent Gamma route</div>
+      <div style="height:1px;background:rgba(255,255,255,.06);margin:6px 0;"></div>
+      <div class="li"><div class="li-dot" style="background:#22c55e"></div> City stop (on-time ≤20%)</div>
+      <div class="li"><div class="li-dot" style="background:#f59e0b"></div> City stop (delay 20–35%)</div>
+      <div class="li"><div class="li-dot" style="background:#ef4444"></div> City stop (delay &gt;35%)</div>
+      <div style="height:1px;background:rgba(255,255,255,.06);margin:6px 0;"></div>
+      <div class="li"><span style="font-size:1.1rem;">🏭</span> Warehouse (Nagpur Hub)</div>
+      <div style="font-size:.62rem;color:#475569;margin-top:6px;">Routes ordered by optimizer's<br>greedy priority assignment.<br>Click any stop for details.</div>
+    </div>
+  </div>
+</div>
+
+<div id="map"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// CORRECTED DATA — built directly from delivery_plan.csv
+// Each agent's region_order reflects the actual greedy-heap
+// assignment: sorted by high-priority-count desc, then avg
+// distance asc — matching optimizer.py Step 5 exactly.
+// ═══════════════════════════════════════════════════════════
+const DATA = {
+  "warehouse": {"lat":21.1458,"lon":79.0882,"name":"Warehouse (Nagpur Hub)"},
+  "agents": [
+    {
+      "name": "Agent Alpha",
+      "color": "#3b82f6",
+      // Optimizer assigned: central(864 high) → west(857) → south(836) → north(827) → east(787)
+      "region_order": ["central","west","south","north","east"],
+      "waypoints": [
+        // CENTRAL — 1658 deliveries, 481 delayed (29%), avg rating 3.62
+        {"name":"Bhopal",      "lat":23.2599,"lon":77.4126,"region":"central","delivery_count":331,"delayed":96,"avg_rating":3.62},
+        {"name":"Indore",      "lat":22.7196,"lon":75.8577,"region":"central","delivery_count":331,"delayed":96,"avg_rating":3.62},
+        {"name":"Raipur",      "lat":21.2514,"lon":81.6296,"region":"central","delivery_count":331,"delayed":96,"avg_rating":3.62},
+        {"name":"Gwalior",     "lat":26.2183,"lon":78.1828,"region":"central","delivery_count":331,"delayed":96,"avg_rating":3.62},
+        {"name":"Jabalpur",    "lat":23.1815,"lon":79.9864,"region":"central","delivery_count":334,"delayed":97,"avg_rating":3.62},
+        // WEST — 1701 deliveries, 458 delayed (26.9%), avg rating 3.63
+        {"name":"Ahmedabad",   "lat":23.0225,"lon":72.5714,"region":"west",   "delivery_count":340,"delayed":91,"avg_rating":3.63},
+        {"name":"Surat",       "lat":21.1702,"lon":72.8311,"region":"west",   "delivery_count":340,"delayed":91,"avg_rating":3.63},
+        {"name":"Mumbai",      "lat":19.0760,"lon":72.8777,"region":"west",   "delivery_count":340,"delayed":92,"avg_rating":3.63},
+        {"name":"Pune",        "lat":18.5204,"lon":73.8567,"region":"west",   "delivery_count":340,"delayed":92,"avg_rating":3.63},
+        {"name":"Nagpur",      "lat":21.1458,"lon":79.0882,"region":"west",   "delivery_count":341,"delayed":92,"avg_rating":3.63},
+        // SOUTH — 1694 deliveries, 448 delayed (26.4%), avg rating 3.69
+        {"name":"Hyderabad",   "lat":17.3850,"lon":78.4867,"region":"south",  "delivery_count":338,"delayed":89,"avg_rating":3.69},
+        {"name":"Chennai",     "lat":13.0827,"lon":80.2707,"region":"south",  "delivery_count":338,"delayed":89,"avg_rating":3.69},
+        {"name":"Bengaluru",   "lat":12.9716,"lon":77.5946,"region":"south",  "delivery_count":338,"delayed":89,"avg_rating":3.69},
+        {"name":"Coimbatore",  "lat":11.0168,"lon":76.9558,"region":"south",  "delivery_count":340,"delayed":89,"avg_rating":3.69},
+        {"name":"Kochi",       "lat": 9.9312,"lon":76.2673,"region":"south",  "delivery_count":340,"delayed":92,"avg_rating":3.69},
+        // NORTH — 1654 deliveries, 445 delayed (26.9%), avg rating 3.71
+        {"name":"Lucknow",     "lat":26.8467,"lon":80.9462,"region":"north",  "delivery_count":330,"delayed":89,"avg_rating":3.71},
+        {"name":"New Delhi",   "lat":28.6139,"lon":77.2090,"region":"north",  "delivery_count":330,"delayed":89,"avg_rating":3.71},
+        {"name":"Jaipur",      "lat":26.9124,"lon":75.7873,"region":"north",  "delivery_count":330,"delayed":89,"avg_rating":3.71},
+        {"name":"Chandigarh",  "lat":30.7333,"lon":76.7794,"region":"north",  "delivery_count":332,"delayed":89,"avg_rating":3.71},
+        {"name":"Dehradun",    "lat":30.3165,"lon":78.0322,"region":"north",  "delivery_count":332,"delayed":89,"avg_rating":3.71},
+        // EAST — 1600 deliveries, 416 delayed (26%), avg rating 3.69
+        {"name":"Bhubaneswar", "lat":20.2961,"lon":85.8245,"region":"east",   "delivery_count":320,"delayed":83,"avg_rating":3.69},
+        {"name":"Ranchi",      "lat":23.3441,"lon":85.3096,"region":"east",   "delivery_count":320,"delayed":83,"avg_rating":3.69},
+        {"name":"Patna",       "lat":25.5941,"lon":85.1376,"region":"east",   "delivery_count":320,"delayed":83,"avg_rating":3.69},
+        {"name":"Kolkata",     "lat":22.5726,"lon":88.3639,"region":"east",   "delivery_count":320,"delayed":83,"avg_rating":3.69},
+        {"name":"Guwahati",    "lat":26.1445,"lon":91.7362,"region":"east",   "delivery_count":320,"delayed":84,"avg_rating":3.69}
+      ],
+      "summary": {
+        "agent":"Agent Alpha","total_deliveries":8307,"total_distance_km":1253153.7,
+        "on_time_rate_%":72.94,"avg_customer_rating":3.67,"high_priority_pct_%":50.21,
+        "avg_cost_per_delivery":867.23,"failure_rate_%":5.27,"avg_perf_score":78.0,
+        "agent_star_rating":3.81
+      }
+    },
+    {
+      "name": "Agent Beta",
+      "color": "#f59e0b",
+      // Optimizer assigned: west(882 high) → central(859) → east(837) → south(800) → north(793)
+      "region_order": ["west","central","east","south","north"],
+      "waypoints": [
+        // WEST — 1705 deliveries, 461 delayed (27%), avg rating 3.65
+        {"name":"Ahmedabad",   "lat":23.0225,"lon":72.5714,"region":"west",   "delivery_count":341,"delayed":92,"avg_rating":3.65},
+        {"name":"Surat",       "lat":21.1702,"lon":72.8311,"region":"west",   "delivery_count":341,"delayed":92,"avg_rating":3.65},
+        {"name":"Mumbai",      "lat":19.0760,"lon":72.8777,"region":"west",   "delivery_count":341,"delayed":92,"avg_rating":3.65},
+        {"name":"Pune",        "lat":18.5204,"lon":73.8567,"region":"west",   "delivery_count":341,"delayed":92,"avg_rating":3.65},
+        {"name":"Nagpur",      "lat":21.1458,"lon":79.0882,"region":"west",   "delivery_count":341,"delayed":93,"avg_rating":3.65},
+        // CENTRAL — 1730 deliveries, 463 delayed (26.8%), avg rating 3.65
+        {"name":"Bhopal",      "lat":23.2599,"lon":77.4126,"region":"central","delivery_count":346,"delayed":92,"avg_rating":3.65},
+        {"name":"Indore",      "lat":22.7196,"lon":75.8577,"region":"central","delivery_count":346,"delayed":92,"avg_rating":3.65},
+        {"name":"Gwalior",     "lat":26.2183,"lon":78.1828,"region":"central","delivery_count":346,"delayed":93,"avg_rating":3.65},
+        {"name":"Jabalpur",    "lat":23.1815,"lon":79.9864,"region":"central","delivery_count":346,"delayed":93,"avg_rating":3.65},
+        {"name":"Raipur",      "lat":21.2514,"lon":81.6296,"region":"central","delivery_count":346,"delayed":93,"avg_rating":3.65},
+        // EAST — 1682 deliveries, 411 delayed (24.4%), avg rating 3.69
+        {"name":"Bhubaneswar", "lat":20.2961,"lon":85.8245,"region":"east",   "delivery_count":336,"delayed":82,"avg_rating":3.69},
+        {"name":"Ranchi",      "lat":23.3441,"lon":85.3096,"region":"east",   "delivery_count":336,"delayed":82,"avg_rating":3.69},
+        {"name":"Patna",       "lat":25.5941,"lon":85.1376,"region":"east",   "delivery_count":336,"delayed":82,"avg_rating":3.69},
+        {"name":"Kolkata",     "lat":22.5726,"lon":88.3639,"region":"east",   "delivery_count":337,"delayed":82,"avg_rating":3.69},
+        {"name":"Guwahati",    "lat":26.1445,"lon":91.7362,"region":"east",   "delivery_count":337,"delayed":83,"avg_rating":3.69},
+        // SOUTH — 1599 deliveries, 441 delayed (27.6%), avg rating 3.66
+        {"name":"Hyderabad",   "lat":17.3850,"lon":78.4867,"region":"south",  "delivery_count":319,"delayed":88,"avg_rating":3.66},
+        {"name":"Chennai",     "lat":13.0827,"lon":80.2707,"region":"south",  "delivery_count":319,"delayed":88,"avg_rating":3.66},
+        {"name":"Bengaluru",   "lat":12.9716,"lon":77.5946,"region":"south",  "delivery_count":320,"delayed":88,"avg_rating":3.66},
+        {"name":"Coimbatore",  "lat":11.0168,"lon":76.9558,"region":"south",  "delivery_count":320,"delayed":88,"avg_rating":3.66},
+        {"name":"Kochi",       "lat": 9.9312,"lon":76.2673,"region":"south",  "delivery_count":321,"delayed":89,"avg_rating":3.66},
+        // NORTH — 1618 deliveries, 427 delayed (26.4%), avg rating 3.68
+        {"name":"Lucknow",     "lat":26.8467,"lon":80.9462,"region":"north",  "delivery_count":323,"delayed":85,"avg_rating":3.68},
+        {"name":"New Delhi",   "lat":28.6139,"lon":77.2090,"region":"north",  "delivery_count":323,"delayed":85,"avg_rating":3.68},
+        {"name":"Jaipur",      "lat":26.9124,"lon":75.7873,"region":"north",  "delivery_count":323,"delayed":85,"avg_rating":3.68},
+        {"name":"Chandigarh",  "lat":30.7333,"lon":76.7794,"region":"north",  "delivery_count":324,"delayed":86,"avg_rating":3.68},
+        {"name":"Dehradun",    "lat":30.3165,"lon":78.0322,"region":"north",  "delivery_count":325,"delayed":86,"avg_rating":3.68}
+      ],
+      "summary": {
+        "agent":"Agent Beta","total_deliveries":8334,"total_distance_km":1253253.7,
+        "on_time_rate_%":73.57,"avg_customer_rating":3.665,"high_priority_pct_%":50.05,
+        "avg_cost_per_delivery":865.06,"failure_rate_%":5.26,"avg_perf_score":78.23,
+        "agent_star_rating":3.83
+      }
+    },
+    {
+      "name": "Agent Gamma",
+      "color": "#10b981",
+      // Optimizer assigned: south(849 high) → west(844) → north(839) → central(825) → east(813)
+      "region_order": ["south","west","north","central","east"],
+      "waypoints": [
+        // SOUTH — 1684 deliveries, 444 delayed (26.4%), avg rating 3.66
+        {"name":"Kochi",       "lat": 9.9312,"lon":76.2673,"region":"south",  "delivery_count":336,"delayed":88,"avg_rating":3.66},
+        {"name":"Coimbatore",  "lat":11.0168,"lon":76.9558,"region":"south",  "delivery_count":336,"delayed":88,"avg_rating":3.66},
+        {"name":"Bengaluru",   "lat":12.9716,"lon":77.5946,"region":"south",  "delivery_count":337,"delayed":89,"avg_rating":3.66},
+        {"name":"Chennai",     "lat":13.0827,"lon":80.2707,"region":"south",  "delivery_count":337,"delayed":89,"avg_rating":3.66},
+        {"name":"Hyderabad",   "lat":17.3850,"lon":78.4867,"region":"south",  "delivery_count":338,"delayed":90,"avg_rating":3.66},
+        // WEST — 1689 deliveries, 454 delayed (26.9%), avg rating 3.64
+        {"name":"Mumbai",      "lat":19.0760,"lon":72.8777,"region":"west",   "delivery_count":337,"delayed":90,"avg_rating":3.64},
+        {"name":"Pune",        "lat":18.5204,"lon":73.8567,"region":"west",   "delivery_count":337,"delayed":90,"avg_rating":3.64},
+        {"name":"Nagpur",      "lat":21.1458,"lon":79.0882,"region":"west",   "delivery_count":337,"delayed":91,"avg_rating":3.64},
+        {"name":"Ahmedabad",   "lat":23.0225,"lon":72.5714,"region":"west",   "delivery_count":339,"delayed":91,"avg_rating":3.64},
+        {"name":"Surat",       "lat":21.1702,"lon":72.8311,"region":"west",   "delivery_count":339,"delayed":92,"avg_rating":3.64},
+        // NORTH — 1677 deliveries, 443 delayed (26.4%), avg rating 3.65
+        {"name":"Jaipur",      "lat":26.9124,"lon":75.7873,"region":"north",  "delivery_count":335,"delayed":88,"avg_rating":3.65},
+        {"name":"New Delhi",   "lat":28.6139,"lon":77.2090,"region":"north",  "delivery_count":335,"delayed":88,"avg_rating":3.65},
+        {"name":"Lucknow",     "lat":26.8467,"lon":80.9462,"region":"north",  "delivery_count":335,"delayed":89,"avg_rating":3.65},
+        {"name":"Chandigarh",  "lat":30.7333,"lon":76.7794,"region":"north",  "delivery_count":336,"delayed":89,"avg_rating":3.65},
+        {"name":"Dehradun",    "lat":30.3165,"lon":78.0322,"region":"north",  "delivery_count":336,"delayed":89,"avg_rating":3.65},
+        // CENTRAL — 1672 deliveries, 435 delayed (26%), avg rating 3.71
+        {"name":"Raipur",      "lat":21.2514,"lon":81.6296,"region":"central","delivery_count":334,"delayed":87,"avg_rating":3.71},
+        {"name":"Jabalpur",    "lat":23.1815,"lon":79.9864,"region":"central","delivery_count":334,"delayed":87,"avg_rating":3.71},
+        {"name":"Indore",      "lat":22.7196,"lon":75.8577,"region":"central","delivery_count":334,"delayed":87,"avg_rating":3.71},
+        {"name":"Bhopal",      "lat":23.2599,"lon":77.4126,"region":"central","delivery_count":335,"delayed":87,"avg_rating":3.71},
+        {"name":"Gwalior",     "lat":26.2183,"lon":78.1828,"region":"central","delivery_count":335,"delayed":87,"avg_rating":3.71},
+        // EAST — 1637 deliveries, 442 delayed (27%), avg rating 3.67
+        {"name":"Bhubaneswar", "lat":20.2961,"lon":85.8245,"region":"east",   "delivery_count":327,"delayed":88,"avg_rating":3.67},
+        {"name":"Ranchi",      "lat":23.3441,"lon":85.3096,"region":"east",   "delivery_count":327,"delayed":88,"avg_rating":3.67},
+        {"name":"Kolkata",     "lat":22.5726,"lon":88.3639,"region":"east",   "delivery_count":327,"delayed":88,"avg_rating":3.67},
+        {"name":"Patna",       "lat":25.5941,"lon":85.1376,"region":"east",   "delivery_count":328,"delayed":89,"avg_rating":3.67},
+        {"name":"Guwahati",    "lat":26.1445,"lon":91.7362,"region":"east",   "delivery_count":328,"delayed":89,"avg_rating":3.67}
+      ],
+      "summary": {
+        "agent":"Agent Gamma","total_deliveries":8359,"total_distance_km":1253353.5,
+        "on_time_rate_%":73.47,"avg_customer_rating":3.664,"high_priority_pct_%":49.89,
+        "avg_cost_per_delivery":862.56,"failure_rate_%":5.41,"avg_perf_score":78.16,
+        "agent_star_rating":3.82
+      }
+    }
+  ]
+};
+
+// ── REGION DISPLAY NAMES & COLORS ──────────────────────────
+const REGION_META = {
+  north:   {label:"North",   bg:"#6366f1"},
+  south:   {label:"South",   bg:"#ec4899"},
+  east:    {label:"East",    bg:"#f97316"},
+  west:    {label:"West",    bg:"#06b6d4"},
+  central: {label:"Central", bg:"#84cc16"},
+};
+
+// ── INIT MAP ───────────────────────────────────────────────
+const map = L.map('map',{center:[21.5,80.0],zoom:5,zoomControl:true});
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | © Leaflet',
+  subdomains:'abc', maxZoom:19
+}).addTo(map);
+
+// ── WAREHOUSE MARKER ───────────────────────────────────────
+const whIcon = L.divIcon({
+  html:`<div style="width:38px;height:38px;background:#fff;border:3px solid #64748b;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 3px 14px rgba(0,0,0,.45);">🏭</div>`,
+  className:'', iconAnchor:[19,19]
+});
+L.marker([DATA.warehouse.lat,DATA.warehouse.lon],{icon:whIcon,zIndexOffset:2000})
+  .addTo(map)
+  .bindPopup(`
+    <div class="pu-title">🏭 ${DATA.warehouse.name}</div>
+    <div style="font-size:.75rem;color:#94a3b8;">Central dispatch hub — all agent routes originate here</div>
+    <div style="height:1px;background:rgba(255,255,255,.1);margin:7px 0;"></div>
+    <div class="pu-row"><span class="pu-k">Location</span><span class="pu-v">Nagpur, Maharashtra</span></div>
+    <div class="pu-row"><span class="pu-k">Coordinates</span><span class="pu-v">21.15°N, 79.09°E</span></div>
+    <div class="pu-row"><span class="pu-k">Agents Dispatched</span><span class="pu-v">3</span></div>
+    <div class="pu-row"><span class="pu-k">Total Deliveries</span><span class="pu-v">25,000</span></div>
+  `);
+
+// ── HELPERS ────────────────────────────────────────────────
+function starsHTML(n){
+  const s=Math.round(n*2)/2;
+  const full=Math.floor(s);
+  const half=s-full>=0.5;
+  return '★'.repeat(full)+(half?'½':'')+'☆'.repeat(5-full-(half?1:0));
+}
+function delayColor(rate){
+  if(rate>0.35) return '#ef4444';
+  if(rate>0.20) return '#f59e0b';
+  return '#22c55e';
+}
+
+// ── STATE ──────────────────────────────────────────────────
+const visible={};
+const agentLayers={};
+
+// ── BUILD LAYERS PER AGENT ─────────────────────────────────
+DATA.agents.forEach(agent=>{
+  visible[agent.name]=true;
+  agentLayers[agent.name]=[];
+
+  const color=agent.color;
+
+  // ── 1. ROUTE POLYLINE: warehouse → waypoints in assigned order ──
+  // Group waypoints by region, then order regions per agent's region_order
+  const byRegion={};
+  agent.waypoints.forEach(wp=>{
+    if(!byRegion[wp.region]) byRegion[wp.region]=[];
+    byRegion[wp.region].push(wp);
+  });
+
+  // Build ordered coordinate list: warehouse → region1 cities → region2 cities → ...
+  const routeCoords=[[DATA.warehouse.lat, DATA.warehouse.lon]];
+  agent.region_order.forEach(region=>{
+    if(byRegion[region]){
+      byRegion[region].forEach(wp=>routeCoords.push([wp.lat,wp.lon]));
+    }
+  });
+  // Return to warehouse
+  routeCoords.push([DATA.warehouse.lat, DATA.warehouse.lon]);
+
+  const poly=L.polyline(routeCoords,{
+    color:color, weight:2.8, opacity:0.82,
+    dashArray:'6 4'   // dashed to show direction flow
+  }).addTo(map);
+  agentLayers[agent.name].push(poly);
+
+  // ── 2. CITY STOP MARKERS ──
+  agent.waypoints.forEach((wp,idx)=>{
+    const total=wp.delivery_count;
+    const delayRate=total>0?wp.delayed/total:0;
+    const dotColor=delayColor(delayRate);
+    const regionColor=REGION_META[wp.region]?.bg||'#64748b';
+    const stopNum=idx+1;
+
+    const icon=L.divIcon({
+      html:`
+        <div style="position:relative;">
+          <div style="
+            min-width:44px;height:44px;
+            background:${dotColor};
+            border:3px solid #fff;
+            border-radius:50%;
+            display:flex;align-items:center;justify-content:center;
+            font-size:.7rem;font-weight:700;color:#fff;
+            box-shadow:0 2px 10px rgba(0,0,0,.45);
+            text-shadow:0 1px 2px rgba(0,0,0,.6);
+            padding:0 6px;
+          ">${total}</div>
+          <div style="
+            position:absolute;top:-6px;right:-6px;
+            background:${regionColor};
+            border:1.5px solid #fff;
+            border-radius:50%;width:17px;height:17px;
+            font-size:.52rem;font-weight:800;color:#fff;
+            display:flex;align-items:center;justify-content:center;
+          ">${stopNum}</div>
+        </div>`,
+      className:'',iconAnchor:[22,22]
+    });
+
+    const regionLabel=REGION_META[wp.region]?.label||wp.region;
+    const m=L.marker([wp.lat,wp.lon],{icon})
+      .bindPopup(`
+        <div class="pu-title">📍 ${wp.name}</div>
+        <span class="pu-agent" style="background:${color}30;color:${color};">${agent.name}</span>
+        &nbsp;
+        <span class="pu-agent" style="background:${regionColor}30;color:${regionColor};">
+          ${regionLabel} Region
+        </span>
+        <div style="height:6px"></div>
+        <div class="pu-row"><span class="pu-k">Route Stop</span><span class="pu-v">#${stopNum} of ${agent.waypoints.length}</span></div>
+        <div class="pu-row"><span class="pu-k">Deliveries</span><span class="pu-v">${total.toLocaleString()}</span></div>
+        <div class="pu-row"><span class="pu-k">Delayed</span>
+          <span class="pu-v" style="color:${dotColor}">${wp.delayed} (${(delayRate*100).toFixed(0)}%)</span>
+        </div>
+        <div class="pu-row"><span class="pu-k">On-Time</span>
+          <span class="pu-v" style="color:#22c55e">${total-wp.delayed} (${((1-delayRate)*100).toFixed(0)}%)</span>
+        </div>
+        <div class="pu-row"><span class="pu-k">Avg Rating</span>
+          <span class="pu-v pu-stars">${starsHTML(wp.avg_rating)} (${wp.avg_rating})</span>
+        </div>
+      `)
+      .addTo(map);
+    agentLayers[agent.name].push(m);
+  });
+});
+
+// ── SIDEBAR: CARDS & TOGGLES ───────────────────────────────
+const cardWrap=document.getElementById('agent-cards');
+const toggleWrap=document.getElementById('agent-toggles');
+
+DATA.agents.forEach(agent=>{
+  const s=agent.summary;
+  const color=agent.color;
+
+  // Region order pills
+  const pillsHTML=agent.region_order.map((r,i)=>{
+    const rc=REGION_META[r]?.bg||'#64748b';
+    const rl=REGION_META[r]?.label||r;
+    return (i>0?`<span class="rt-arrow">›</span>`:'')
+           +`<span class="rt" style="background:${rc}22;color:${rc};border:1px solid ${rc}55;">${rl}</span>`;
+  }).join('');
+
+  const card=document.createElement('div');
+  card.className='agent-card active';
+  card.style.setProperty('--ac',color);
+  card.id='ac-'+agent.name.replace(/ /g,'_');
+  card.innerHTML=`
+    <div class="agent-card-hdr" style="background:${color}18">
+      <div class="ac-dot"></div>
+      <div class="ac-name">${agent.name}</div>
+      <div class="ac-stars">${starsHTML(s.agent_star_rating)}</div>
+    </div>
+    <div class="ac-body">
+      <div style="margin-bottom:4px;">
+        <div class="ac-bar-label" style="margin-bottom:4px;">Route Order (by high priority)</div>
+        <div class="route-order">${pillsHTML}</div>
+      </div>
+      <div class="ac-stat"><span class="ac-key">★ Star Rating</span><span class="ac-val">${s.agent_star_rating} / 5.00</span></div>
+      <div class="ac-stat"><span class="ac-key">Total Deliveries</span><span class="ac-val">${s.total_deliveries.toLocaleString()}</span></div>
+      <div class="ac-stat"><span class="ac-key">Total Distance</span><span class="ac-val">${(s.total_distance_km/1000).toFixed(1)}K km</span></div>
+      <div class="ac-stat"><span class="ac-key">On-Time Rate</span><span class="ac-val">${s['on_time_rate_%']}%</span></div>
+      <div class="ac-bar"><div class="ac-fill" style="width:${s['on_time_rate_%']}%"></div></div>
+      <div class="ac-bar-label">${s['on_time_rate_%']}% on-time</div>
+      <div class="ac-stat"><span class="ac-key">Avg Customer Rating</span><span class="ac-val">${s.avg_customer_rating}/5</span></div>
+      <div class="ac-stat"><span class="ac-key">High Priority %</span><span class="ac-val">${s['high_priority_pct_%']}%</span></div>
+      <div class="ac-stat"><span class="ac-key">Failure Rate</span><span class="ac-val" style="color:#ef4444">${s['failure_rate_%']}%</span></div>
+      <div class="ac-stat"><span class="ac-key">Avg Cost/Delivery</span><span class="ac-val">₹${s.avg_cost_per_delivery}</span></div>
+      <div class="ac-stat"><span class="ac-key">Perf Score</span><span class="ac-val">${s.avg_perf_score}/100</span></div>
+    </div>
+  `;
+  card.onclick=()=>focusAgent(agent);
+  cardWrap.appendChild(card);
+
+  // Toggle button
+  const btn=document.createElement('button');
+  btn.className='fbtn active';
+  btn.textContent=agent.name.split(' ')[1];
+  btn.style.borderColor=color;
+  btn.style.color=color;
+  btn.id='toggle-'+agent.name.replace(/ /g,'_');
+  btn.onclick=(e)=>{e.stopPropagation();toggleAgent(agent.name,btn);};
+  toggleWrap.appendChild(btn);
+});
+
+// ── INTERACTIONS ───────────────────────────────────────────
+function toggleAgent(name,btn){
+  visible[name]=!visible[name];
+  btn.classList.toggle('active',visible[name]);
+  agentLayers[name].forEach(layer=>{
+    if(visible[name]){if(!map.hasLayer(layer))layer.addTo(map);}
+    else{if(map.hasLayer(layer))map.removeLayer(layer);}
+  });
+  const card=document.getElementById('ac-'+name.replace(/ /g,'_'));
+  card.style.opacity=visible[name]?'1':'0.4';
+}
+
+function focusAgent(agent){
+  const allCoords=[
+    [DATA.warehouse.lat,DATA.warehouse.lon],
+    ...agent.waypoints.map(w=>[w.lat,w.lon])
+  ];
+  map.fitBounds(allCoords,{padding:[50,50]});
+  document.querySelectorAll('.agent-card').forEach(c=>c.classList.remove('active'));
+  document.getElementById('ac-'+agent.name.replace(/ /g,'_')).classList.add('active');
+}
+</script>
+</body>
+</html>

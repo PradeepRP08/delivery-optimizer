@@ -1,0 +1,4 @@
+agent,total_deliveries,total_distance_km,on_time_rate_%,avg_customer_rating,high_priority_pct_%,avg_cost_per_delivery,failure_rate_%,avg_perf_score,agent_star_rating
+Agent Alpha,8307,1253153.7,72.94,3.67,50.21,867.23,5.27,78.0,3.81
+Agent Beta,8334,1253253.7,73.57,3.665,50.05,865.06,5.26,78.23,3.83
+Agent Gamma,8359,1253353.5,73.47,3.664,49.89,862.56,5.41,78.16,3.82

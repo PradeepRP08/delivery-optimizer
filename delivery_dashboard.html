@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>DeliverIQ — Intelligence Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#09090f;
+  --surface:#0f0f1a;
+  --card:#13131f;
+  --border:rgba(255,255,255,0.07);
+  --accent:#ff3e6c;
+  --accent2:#00e5b8;
+  --accent3:#a78bfa;
+  --accent4:#f59e0b;
+  --text:#f0f0f8;
+  --muted:#6b6b88;
+  --high:#ff3e6c;
+  --medium:#f59e0b;
+  --low:#00e5b8;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Syne',sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ─── GRAIN OVERLAY ──────────────────────────────────── */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:9999;opacity:.4;
+}
+
+/* ─── TOP ACCENT LINE ────────────────────────────────── */
+.top-line{height:3px;background:linear-gradient(90deg,var(--accent),var(--accent3),var(--accent2));position:sticky;top:0;z-index:100;}
+
+/* ─── HEADER ─────────────────────────────────────────── */
+header{
+  padding:2.5rem 3rem 2rem;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+}
+.brand{display:flex;align-items:center;gap:1rem;}
+.brand-icon{
+  width:46px;height:46px;background:var(--accent);
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue';font-size:1.1rem;color:#fff;letter-spacing:.05em;
+}
+.brand-name{font-family:'Bebas Neue';font-size:2.2rem;letter-spacing:.1em;color:var(--text);}
+.brand-name span{color:var(--accent);}
+.header-meta{text-align:right;}
+.header-meta .badge{
+  display:inline-block;padding:.25rem .75rem;
+  background:rgba(0,229,184,.12);border:1px solid rgba(0,229,184,.3);
+  color:var(--accent2);border-radius:2px;font-family:'DM Mono';font-size:.7rem;letter-spacing:.1em;
+  text-transform:uppercase;
+}
+.header-meta p{font-size:.75rem;color:var(--muted);margin-top:.4rem;font-family:'DM Mono';}
+
+/* ─── SECTION LABELS ─────────────────────────────────── */
+.section-label{
+  display:flex;align-items:center;gap:.75rem;
+  padding:2.5rem 3rem 1rem;
+}
+.section-label .tag{
+  font-family:'DM Mono';font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--accent);padding:.2rem .6rem;border:1px solid rgba(255,62,108,.3);
+  background:rgba(255,62,108,.08);border-radius:2px;
+}
+.section-label h2{font-size:1.4rem;font-weight:700;color:var(--text);}
+
+/* ─── GRID LAYOUTS ───────────────────────────────────── */
+.grid{display:grid;gap:1.5rem;padding:0 3rem 2rem;}
+.g-5{grid-template-columns:repeat(5,1fr);}
+.g-4{grid-template-columns:repeat(4,1fr);}
+.g-3{grid-template-columns:repeat(3,1fr);}
+.g-2{grid-template-columns:1fr 1fr;}
+.g-2-1{grid-template-columns:2fr 1fr;}
+.g-1-2{grid-template-columns:1fr 2fr;}
+.g-1-1-2{grid-template-columns:1fr 1fr 2fr;}
+@media(max-width:900px){.g-5,.g-4,.g-3,.g-2,.g-2-1,.g-1-2,.g-1-1-2{grid-template-columns:1fr;}}
+
+/* ─── CARDS ──────────────────────────────────────────── */
+.card{
+  background:var(--card);border:1px solid var(--border);border-radius:4px;
+  padding:1.5rem;position:relative;overflow:hidden;
+  transition:border-color .2s,transform .2s;
+}
+.card:hover{border-color:rgba(255,255,255,.15);transform:translateY(-2px);}
+.card::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.02) 0%,transparent 60%);
+  pointer-events:none;
+}
+
+/* ─── KPI CARDS ──────────────────────────────────────── */
+.kpi{text-align:center;padding:1.75rem 1rem;}
+.kpi-icon{font-size:1.5rem;margin-bottom:.75rem;display:block;}
+.kpi-val{
+  font-family:'Bebas Neue';font-size:2.8rem;line-height:1;letter-spacing:.05em;
+  background:linear-gradient(135deg,#fff,var(--muted));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.kpi-val.accent{background:linear-gradient(135deg,var(--accent),#ff8fa8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.kpi-val.green{background:linear-gradient(135deg,var(--accent2),#80ffdc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.kpi-val.purple{background:linear-gradient(135deg,var(--accent3),#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.kpi-val.yellow{background:linear-gradient(135deg,var(--accent4),#fcd34d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.kpi-label{font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-top:.4rem;font-family:'DM Mono';}
+
+/* ─── CHART WRAPPERS ─────────────────────────────────── */
+.chart-title{font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono';margin-bottom:1rem;}
+canvas{max-height:260px;}
+.tall canvas{max-height:320px;}
+.short canvas{max-height:180px;}
+
+/* ─── Z-SCORE SECTION ────────────────────────────────── */
+.z-panel{display:flex;flex-direction:column;gap:1rem;}
+.z-row{display:flex;align-items:center;gap:1rem;}
+.z-name{font-family:'DM Mono';font-size:.72rem;color:var(--text);width:140px;flex-shrink:0;}
+.z-bar-wrap{flex:1;height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;}
+.z-bar{height:100%;border-radius:4px;transition:width .8s ease;}
+.z-val{font-family:'DM Mono';font-size:.72rem;color:var(--muted);width:50px;text-align:right;flex-shrink:0;}
+.z-badge{
+  font-family:'DM Mono';font-size:.62rem;padding:.15rem .5rem;border-radius:2px;flex-shrink:0;
+}
+.z-badge.safe{background:rgba(0,229,184,.12);color:var(--accent2);border:1px solid rgba(0,229,184,.3);}
+.z-badge.warn{background:rgba(245,158,11,.12);color:var(--accent4);border:1px solid rgba(245,158,11,.3);}
+.z-badge.danger{background:rgba(255,62,108,.12);color:var(--accent);border:1px solid rgba(255,62,108,.3);}
+
+/* ─── AGENT CARDS ────────────────────────────────────── */
+.agent-card{position:relative;overflow:hidden;}
+.agent-glow{
+  position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:50%;
+  filter:blur(40px);opacity:.3;
+}
+.agent-num{font-family:'Bebas Neue';font-size:4rem;line-height:1;letter-spacing:.05em;}
+.agent-label{font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono';}
+.agent-km{font-family:'DM Mono';font-size:1.1rem;color:var(--text);margin:.5rem 0;}
+.agent-pills{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem;}
+.pill{
+  font-family:'DM Mono';font-size:.6rem;padding:.2rem .5rem;border-radius:2px;letter-spacing:.05em;
+}
+.pill-h{background:rgba(255,62,108,.15);color:var(--high);}
+.pill-m{background:rgba(245,158,11,.15);color:var(--medium);}
+.pill-l{background:rgba(0,229,184,.15);color:var(--low);}
+.balance-bar{
+  margin-top:1rem;height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;
+}
+.balance-fill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent3));border-radius:2px;}
+
+/* ─── ML SECTION ─────────────────────────────────────── */
+.ml-metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.75rem;}
+.ml-metric{
+  background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:3px;
+  padding:.75rem;text-align:center;
+}
+.ml-metric-val{font-family:'Bebas Neue';font-size:2rem;letter-spacing:.05em;}
+.ml-metric-lbl{font-family:'DM Mono';font-size:.62rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;}
+.fi-bar{display:flex;align-items:center;gap:.75rem;margin-bottom:.6rem;}
+.fi-name{font-family:'DM Mono';font-size:.68rem;color:var(--text);width:160px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fi-track{flex:1;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;}
+.fi-fill{height:100%;border-radius:3px;}
+.fi-pct{font-family:'DM Mono';font-size:.68rem;color:var(--muted);width:40px;text-align:right;flex-shrink:0;}
+
+/* ─── CLUSTER TABLE ──────────────────────────────────── */
+table.cluster-tbl{width:100%;border-collapse:collapse;font-family:'DM Mono';font-size:.72rem;}
+table.cluster-tbl th{
+  color:var(--muted);font-weight:400;letter-spacing:.1em;text-transform:uppercase;
+  padding:.6rem .75rem;border-bottom:1px solid var(--border);text-align:left;font-size:.62rem;
+}
+table.cluster-tbl td{padding:.6rem .75rem;border-bottom:1px solid rgba(255,255,255,.03);}
+table.cluster-tbl tr:hover td{background:rgba(255,255,255,.03);}
+.delay-chip{
+  display:inline-block;padding:.1rem .4rem;border-radius:2px;font-size:.62rem;
+}
+
+/* ─── WEATHER BARS ───────────────────────────────────── */
+.weather-list{display:flex;flex-direction:column;gap:.75rem;}
+.w-row{display:flex;align-items:center;gap:.75rem;}
+.w-icon{font-size:1rem;width:20px;text-align:center;}
+.w-name{font-family:'DM Mono';font-size:.72rem;color:var(--text);width:55px;flex-shrink:0;}
+.w-track{flex:1;height:10px;background:rgba(255,255,255,.05);border-radius:5px;overflow:hidden;}
+.w-fill{height:100%;border-radius:5px;}
+.w-pct{font-family:'DM Mono';font-size:.72rem;color:var(--muted);width:38px;text-align:right;}
+
+/* ─── CORRELATION MATRIX ─────────────────────────────── */
+.corr-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;}
+.corr-cell{
+  background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:3px;
+  padding:.75rem;text-align:center;
+}
+.corr-val{font-family:'Bebas Neue';font-size:1.8rem;letter-spacing:.05em;}
+.corr-lbl{font-family:'DM Mono';font-size:.58rem;color:var(--muted);letter-spacing:.06em;line-height:1.4;}
+
+/* ─── FOOTER ─────────────────────────────────────────── */
+footer{
+  border-top:1px solid var(--border);padding:2rem 3rem;
+  display:flex;justify-content:space-between;align-items:center;
+  background:var(--surface);margin-top:2rem;
+}
+footer p{font-family:'DM Mono';font-size:.65rem;color:var(--muted);letter-spacing:.08em;}
+.footer-badges{display:flex;gap:.5rem;}
+.f-badge{
+  font-family:'DM Mono';font-size:.6rem;padding:.2rem .5rem;border-radius:2px;
+  border:1px solid var(--border);color:var(--muted);
+}
+
+
+/* ─── AGENT RATINGS SECTION ──────────────────────────── */
+.agent-rating-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;padding:0 3rem 2rem;}
+@media(max-width:900px){.agent-rating-grid{grid-template-columns:1fr;}}
+.ar-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1.75rem;position:relative;overflow:hidden;transition:border-color .2s,transform .2s;}
+.ar-card:hover{border-color:rgba(255,255,255,.15);transform:translateY(-2px);}
+.ar-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.025) 0%,transparent 60%);pointer-events:none;}
+.ar-glow{position:absolute;top:-50px;right:-50px;width:140px;height:140px;border-radius:50%;filter:blur(50px);opacity:.25;}
+.ar-header{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;}
+.ar-avatar{
+  width:52px;height:52px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue';font-size:1.4rem;color:#fff;
+  flex-shrink:0;border:2px solid rgba(255,255,255,.2);
+}
+.ar-name-block{}
+.ar-name{font-weight:700;font-size:1.05rem;color:var(--text);}
+.ar-role{font-family:'DM Mono';font-size:.62rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem;}
+.star-row{display:flex;align-items:center;gap:.6rem;margin-bottom:1.5rem;}
+.star-display{display:flex;gap:3px;}
+.star{width:22px;height:22px;position:relative;}
+.star-bg{color:#2a2a3a;font-size:1.2rem;}
+.star-fg{color:#fbbf24;font-size:1.2rem;position:absolute;top:0;left:0;overflow:hidden;}
+.star-score{font-family:'Bebas Neue';font-size:2rem;color:var(--text);letter-spacing:.05em;line-height:1;}
+.star-max{font-family:'DM Mono';font-size:.7rem;color:var(--muted);margin-top:.3rem;}
+.ar-metric{display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border);}
+.ar-metric:last-child{border:none;}
+.ar-metric-label{font-family:'DM Mono';font-size:.68rem;color:var(--muted);display:flex;align-items:center;gap:.4rem;}
+.ar-metric-val{font-family:'DM Mono';font-size:.8rem;font-weight:500;color:var(--text);}
+.ar-metric-bar{flex:1;height:4px;background:rgba(255,255,255,.06);border-radius:2px;margin:0 .75rem;overflow:hidden;}
+.ar-metric-fill{height:100%;border-radius:2px;}
+.ar-badge{display:inline-block;padding:.2rem .6rem;border-radius:2px;font-family:'DM Mono';font-size:.62rem;font-weight:600;letter-spacing:.06em;}
+
+/* rating formula card */
+.formula-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1.5rem;margin:0 3rem 2rem;font-family:'DM Mono';}
+.formula-title{font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;}
+.formula-eq{font-size:.8rem;color:var(--accent2);line-height:1.8;}
+.formula-breakdown{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:1rem;}
+@media(max-width:900px){.formula-breakdown{grid-template-columns:1fr 1fr;}}
+.fb-item{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:3px;padding:.75rem;text-align:center;}
+.fb-weight{font-family:'Bebas Neue';font-size:1.6rem;letter-spacing:.05em;}
+.fb-label{font-size:.62rem;color:var(--muted);margin-top:.2rem;line-height:1.4;}
+
+/* ─── ANIMATED ENTRY ─────────────────────────────────── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+.card{animation:fadeUp .5s ease both;}
+.card:nth-child(1){animation-delay:.05s;}
+.card:nth-child(2){animation-delay:.1s;}
+.card:nth-child(3){animation-delay:.15s;}
+.card:nth-child(4){animation-delay:.2s;}
+.card:nth-child(5){animation-delay:.25s;}
+
+.section-divider{height:1px;background:var(--border);margin:1rem 3rem;}
+</style>
+</head>
+<body>
+
+<div class="top-line"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="brand">
+    <div class="brand-icon">DQ</div>
+    <div>
+      <div class="brand-name">Deliver<span>IQ</span></div>
+      <div style="font-family:'DM Mono';font-size:.65rem;color:var(--muted);letter-spacing:.1em;">LOGISTICS INTELLIGENCE PLATFORM</div>
+    </div>
+  </div>
+  <div class="header-meta">
+    <span class="badge">✦ Live Analysis</span>
+    <p>25,000 deliveries · Z-Score Cleaned · ML Augmented</p>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- SECTION 1: KPI ROW -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section-label"><span class="tag">01</span><h2>Fleet Overview</h2></div>
+<div class="grid g-5">
+  <div class="card kpi">
+    <span class="kpi-icon">📦</span>
+    <div class="kpi-val">25K</div>
+    <div class="kpi-label">Total Deliveries</div>
+  </div>
+  <div class="card kpi">
+    <span class="kpi-icon">🧹</span>
+    <div class="kpi-val green">0</div>
+    <div class="kpi-label">Outliers (Z>3)</div>
+  </div>
+  <div class="card kpi">
+    <span class="kpi-icon">⚡</span>
+    <div class="kpi-val accent">73.3%</div>
+    <div class="kpi-label">On-Time Rate</div>
+  </div>
+  <div class="card kpi">
+    <span class="kpi-icon">🤖</span>
+    <div class="kpi-val purple">96.86%</div>
+    <div class="kpi-label">ML Accuracy</div>
+  </div>
+  <div class="card kpi">
+    <span class="kpi-icon">⚖️</span>
+    <div class="kpi-val yellow">0.016%</div>
+    <div class="kpi-label">Agent Imbalance</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- SECTION 2: Z-SCORE ANALYSIS -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section-divider"></div>
+<div class="section-label"><span class="tag">02</span><h2>Z-Score Outlier Detection</h2></div>
+<div class="grid g-2">
+
+  <!-- Z bars -->
+  <div class="card">
+    <div class="chart-title">Feature Z-Score Distribution (max per variable)</div>
+    <div class="z-panel" id="z-panel"></div>
+    <div style="margin-top:1.5rem;padding:1rem;background:rgba(0,229,184,.05);border:1px solid rgba(0,229,184,.15);border-radius:3px;">
+      <p style="font-family:'DM Mono';font-size:.7rem;color:var(--accent2);line-height:1.6;">
+        ✦ All 25,000 records passed Z>3 threshold — dataset is statistically clean with no overflow values.<br>
+        ✦ Delivery rating has max Z = 2.318 (closest to boundary but still within safe zone).<br>
+        ✦ IQR fence for delivery_cost: [−629.87, 2358.58] — no extreme cost anomalies detected.
+      </p>
+    </div>
+  </div>
+
+  <!-- Z histogram -->
+  <div class="card">
+    <div class="chart-title">Z-Score Bin Distribution — All Features</div>
+    <canvas id="zHistChart"></canvas>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- SECTION 3: PRIORITY & STATUS -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section-divider"></div>
+<div class="section-label"><span class="tag">03</span><h2>Priority Distribution &amp; Delivery Status</h2></div>
+<div class="grid g-1-1-2">
+
+  <div class="card">
+    <div class="chart-title">Priority Breakdown</div>
+    <canvas id="priorityChart"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="chart-title">Delivery Status</div>
+    <canvas id="statusChart"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="chart-title">Delay Rate by Priority (%)</div>
+    <canvas id="priorityDelayChart"></canvas>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- SECTION 4: AGENT ASSIGNMENT -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section-divider"></div>
+<div class="section-label"><span class="tag">04</span><h2>Greedy Min-Heap Agent Assignment</h2></div>
+<div class="grid g-3" id="agent-grid"></div>
+<div class="grid g-2">
+  <div class="card">
+    <div class="chart-title">Agent Deliveries by Priority Tier</div>
+    <canvas id="agentStackChart"></canvas>
+  </div>
+  <div class="card">
+    <div class="chart-title">Total Distance per Agent (km)</div>
+    <canvas id="agentDistChart"></canvas>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- SECTION 4B: AGENT STAR RATINGS -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section-divider"></div>
+<div class="section-label"><span class="tag">★</span><h2>Agent Star Ratings &amp; KPI Breakdown</h2></div>
+
+<div class="formula-card">
+  <div class="formula-title">Rating Formula</div>
+  <div class="formula-eq">⭐ Star Rating (1–5) = <span style="color:var(--accent)">On-Time Rate</span> × 2.0 + <span style="color:var(--accent3)">(Avg Customer Rating / 5)</span> × 1.5 + <span style="color:var(--accent4)">(Perf Score / 100)</span> × 1.0 + <span style="color:var(--accent2)">(1 − Failure Rate)</span> × 0.5</div>
+  <div class="formula-breakdown">
+    <div class="fb-item"><div class="fb-weight" style="color:var(--accent)">40%</div><div class="fb-label">On-Time Rate<br>(2.0 pts)</div></div>
+    <div class="fb-item"><div class="fb-weight" style="color:var(--accent3)">30%</div><div class="fb-label">Customer Rating<br>(1.5 pts)</div></div>
+    <div class="fb-item"><div class="fb-weight" style="color:var(--accent4)">20%</div><div class="fb-label">Perf Score<br>(1.0 pts)</div></div>
+    <div class="fb-item"><div class="fb-weight" style="color:var(--accent2)">10%</div><div class="fb-label">Reliability<br>(0.5 pts)</div></div>
+  </div>
+</div>
+
+<div class="agent-rating-grid" id="ar-grid"></div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- SECTION 5: WEATHER & REGION -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section-divider"></div>
+<div class="section-label"><span class="tag">05</span><h2>Weather Impact &amp; Regional Analysis</h2></div>
+<div class="grid g-2">
+
+  <div class="card">
+    <div class="chart-title">Delay Rate by Weather Condition (%)</div>
+    <div class="weather-list" id="weather-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="chart-title">Avg Delivery Cost by Region (₹)</div>
+    <canvas id="regionChart"></canvas>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- SECTION 6: ML — DELAY CLASSIFIER -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section-divider"></div>
+<div class="section-label"><span class="tag">06</span><h2>ML — Delay Prediction Classifier</h2></div>
+<div class="grid g-1-2">
+
+  <div class="card">
+    <div class="chart-title">Random Forest · 5-Fold Performance</div>
+    <div class="ml-metric-grid">
+      <div class="ml-metric">
+        <div class="ml-metric-val" style="color:var(--accent2)">96.86%</div>
+        <div class="ml-metric-lbl">Accuracy</div>
+      </div>
+      <div class="ml-metric">
+        <div class="ml-metric-val" style="color:var(--accent3)">93.97%</div>
+        <div class="ml-metric-lbl">Precision</div>
+      </div>
+      <div class="ml-metric">
+        <div class="ml-metric-val" style="color:var(--accent4)">94.18%</div>
+        <div class="ml-metric-lbl">Recall</div>
+      </div>
+      <div class="ml-metric">
+        <div class="ml-metric-val" style="color:var(--accent)">94.07%</div>
+        <div class="ml-metric-lbl">F1 Score</div>
+      </div>
+    </div>
+    <div style="margin-top:1rem;padding:.75rem;background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.2);border-radius:3px;">
+      <p style="font-family:'DM Mono';font-size:.68rem;color:var(--accent3);line-height:1.6;">
+        Cost Regressor R² = 99.99% · MAE = ₹2.34<br>Features: distance, weight, cost, rating, weather, priority, vehicle, region
+      </p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="chart-title">Feature Importance — Delay Prediction</div>
+    <div id="fi-panel"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- SECTION 7: K-MEANS CLUSTERING -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section-divider"></div>
+<div class="section-label"><span class="tag">07</span><h2>K-Means Route Clustering (k=5)</h2></div>
+<div class="grid g-2">
+
+  <div class="card">
+    <div class="chart-title">Cluster Profile — Avg Distance vs Cost</div>
+    <canvas id="clusterChart"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="chart-title">Cluster Statistics</div>
+    <table class="cluster-tbl" id="cluster-tbl">
+      <thead>
+        <tr><th>Cluster</th><th>Count</th><th>Avg Dist (km)</th><th>Avg Cost (₹)</th><th>Delay Rate</th></tr>
+      </thead>
+      <tbody id="cluster-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- SECTION 8: CORRELATION & DISTRIBUTION -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section-divider"></div>
+<div class="section-label"><span class="tag">08</span><h2>Correlations &amp; Cost Distribution</h2></div>
+<div class="grid g-3">
+
+  <div class="card">
+    <div class="chart-title">Correlation Coefficients</div>
+    <div class="corr-grid">
+      <div class="corr-cell">
+        <div class="corr-val" style="color:var(--accent2)">0.99</div>
+        <div class="corr-lbl">Distance<br>↔ Cost</div>
+      </div>
+      <div class="corr-cell">
+        <div class="corr-val" style="color:var(--accent)">−0.13</div>
+        <div class="corr-lbl">Distance<br>↔ Rating</div>
+      </div>
+      <div class="corr-cell">
+        <div class="corr-val" style="color:var(--muted)">0.10</div>
+        <div class="corr-lbl">Weight<br>↔ Cost</div>
+      </div>
+    </div>
+    <div style="margin-top:1rem;height:1px;background:var(--border);"></div>
+    <div style="margin-top:1rem;">
+      <div class="chart-title">Rating Distribution</div>
+      <canvas id="ratingChart" class="short"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="chart-title">Delivery Cost Percentiles (₹)</div>
+    <canvas id="costPercChart"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="chart-title">Avg Cost by Delivery Mode</div>
+    <canvas id="costModeChart"></canvas>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- SECTION 9: PARTNER & VEHICLE -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section-divider"></div>
+<div class="section-label"><span class="tag">09</span><h2>Partners &amp; Vehicle Mix</h2></div>
+<div class="grid g-2">
+  <div class="card">
+    <div class="chart-title">Delivery Partner Volume</div>
+    <canvas id="partnerChart"></canvas>
+  </div>
+  <div class="card">
+    <div class="chart-title">Vehicle Type Distribution</div>
+    <canvas id="vehicleChart"></canvas>
+  </div>
+</div>
+
+<div style="height:2rem;"></div>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <p>DeliverIQ Intelligence Dashboard · 25,000 records analyzed</p>
+    <p style="margin-top:.3rem;">Z-Score Cleaning · Greedy Min-Heap Routing · Random Forest · Gradient Boosting · K-Means Clustering</p>
+  </div>
+  <div class="footer-badges">
+    <span class="f-badge">sklearn</span>
+    <span class="f-badge">pandas</span>
+    <span class="f-badge">scipy</span>
+    <span class="f-badge">Chart.js</span>
+  </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════
+const D = {
+  "total_deliveries": 25000,
+  "outliers_removed": 0,
+  "z_analysis": {
+    "distance_km": {"z_max": 1.699,"outliers_3": 0,"bins": [14480,10520,0,0,0]},
+    "package_weight_kg": {"z_max": 1.703,"outliers_3": 0,"bins": [14393,10607,0,0,0]},
+    "delivery_cost": {"z_max": 1.766,"outliers_3": 0,"bins": [14554,10446,0,0,0]},
+    "delivery_rating": {"z_max": 2.318,"outliers_3": 0,"bins": [13091,10989,920,0,0]}
+  },
+  "priority_counts": {"High": 12512,"Medium": 6302,"Low": 6186},
+  "status_counts": {"delivered": 18331,"delayed": 5341,"failed": 1328},
+  "region_avg": {
+    "distance_km": {"central":151.04,"east":149.86,"north":149.56,"south":149.17,"west":152.25},
+    "delivery_cost": {"central":869.95,"east":861.46,"north":860.44,"south":858.3,"west":874.21}
+  },
+  "weather_delay": {"clear":17.4,"cold":16.0,"foggy":30.3,"hot":17.1,"rainy":37.4,"stormy":41.4},
+  "partner_counts": {"xpressbees":2826,"fedex":2818,"dhl":2802,"ekart":2801,"blue dart":2798,"delhivery":2786,"shadowfax":2736,"ecom express":2722},
+  "vehicle_type": {"ev bike":4218,"van":4187,"scooter":4174,"bike":4160,"truck":4145,"ev van":4116},
+  "agent_stats": {
+    "1": {"deliveries":8307,"total_km":1253153.7,"high":4171,"medium":2100,"low":2036},
+    "2": {"deliveries":8334,"total_km":1253253.7,"high":4171,"medium":2074,"low":2089},
+    "3": {"deliveries":8359,"total_km":1253353.5,"high":4170,"medium":2128,"low":2061}
+  },
+  "imbalance_pct": 0.0159,
+  "delay_by_priority": {"High":53.1,"Medium":0.4,"Low":0.0},
+  "ml_classifier": {
+    "accuracy":96.86,"precision":93.97,"recall":94.18,"f1":94.07,
+    "feature_importance": {
+      "delivery_rating":54.64,"Priority_enc":23.7,"delivery_cost":5.55,
+      "distance_km":5.06,"weather_condition_enc":4.71,
+      "package_weight_kg":3.82,"vehicle_type_enc":1.34,"region_enc":1.18
+    }
+  },
+  "ml_regressor": {"mae":2.34,"r2":99.99},
+  "cluster_stats": {
+    "count":{"0":4873,"1":5160,"2":5063,"3":5001,"4":4903},
+    "avg_dist":{"0":270.02,"1":91.54,"2":153.03,"3":31.64,"4":211.82},
+    "avg_cost":{"0":1473.56,"1":569.5,"2":877.82,"3":260.88,"4":1173.83},
+    "delay_rate":{"0":0.42,"1":0.20,"2":0.25,"3":0.16,"4":0.31}
+  },
+  "correlation": {"distance_cost":0.9908,"distance_rating":-0.1326,"weight_cost":0.0995},
+  "rating_dist": {"1":920,"2":3602,"3":5773,"4":7318,"5":7387},
+  "cost_by_mode": {"express":880.43,"same day":929.87,"standard":819.34,"two day":829.71},
+  "cost_percentiles": {"p10":264.57,"p25":490.8,"p50":867.54,"p75":1237.91,"p90":1467.8}
+};
+
+// ═══════════════════════════════════════════════════════
+// CHART.JS DEFAULTS
+// ═══════════════════════════════════════════════════════
+Chart.defaults.color = '#6b6b88';
+Chart.defaults.font.family = 'DM Mono';
+Chart.defaults.font.size = 11;
+Chart.defaults.plugins.legend.labels.boxWidth = 10;
+Chart.defaults.plugins.legend.labels.padding = 14;
+
+const COLORS = ['#ff3e6c','#00e5b8','#a78bfa','#f59e0b','#38bdf8','#fb7185','#34d399'];
+const grid_color = 'rgba(255,255,255,0.05)';
+
+function mkChart(id, cfg){
+  const el = document.getElementById(id);
+  if(!el) return;
+  return new Chart(el, cfg);
+}
+
+// ─── Z-SCORE PANEL ───────────────────────────────────────
+const zPanel = document.getElementById('z-panel');
+const zCols = {
+  'distance_km':'Distance (km)',
+  'package_weight_kg':'Pkg Weight (kg)',
+  'delivery_cost':'Delivery Cost',
+  'delivery_rating':'Rating'
+};
+const zBadge = z => z < 2 ? ['safe','CLEAN'] : z < 2.5 ? ['warn','WATCH'] : ['danger','FLAG'];
+Object.entries(D.z_analysis).forEach(([col, data]) => {
+  const [cls, txt] = zBadge(data.z_max);
+  const pct = (data.z_max / 3) * 100;
+  const color = cls === 'safe' ? '#00e5b8' : cls === 'warn' ? '#f59e0b' : '#ff3e6c';
+  zPanel.innerHTML += `
+    <div class="z-row">
+      <div class="z-name">${zCols[col]}</div>
+      <div class="z-bar-wrap"><div class="z-bar" style="width:${Math.min(pct,100)}%;background:${color};"></div></div>
+      <div class="z-val">${data.z_max.toFixed(3)}</div>
+      <div class="z-badge ${cls}">${txt}</div>
+    </div>`;
+});
+
+// ─── Z HISTOGRAM ─────────────────────────────────────────
+mkChart('zHistChart', {
+  type: 'bar',
+  data: {
+    labels: ['|Z|∈[0,1)','|Z|∈[1,2)','|Z|∈[2,3)','|Z|∈[3,4)','|Z|>4'],
+    datasets: Object.entries(D.z_analysis).map(([col, data], i) => ({
+      label: zCols[col],
+      data: data.bins,
+      backgroundColor: COLORS[i] + '99',
+      borderColor: COLORS[i],
+      borderWidth: 1.5,
+      borderRadius: 3,
+    }))
+  },
+  options: {
+    responsive:true, plugins:{legend:{position:'bottom'}},
+    scales:{
+      x:{grid:{color:grid_color}},
+      y:{grid:{color:grid_color}, beginAtZero:true, ticks:{callback:v=>v>=1000?v/1000+'k':v}}
+    }
+  }
+});
+
+// ─── PRIORITY DOUGHNUT ────────────────────────────────────
+mkChart('priorityChart', {
+  type:'doughnut',
+  data:{
+    labels:['High','Medium','Low'],
+    datasets:[{
+      data:[D.priority_counts.High, D.priority_counts.Medium, D.priority_counts.Low],
+      backgroundColor:['#ff3e6c99','#f59e0b99','#00e5b899'],
+      borderColor:['#ff3e6c','#f59e0b','#00e5b8'],
+      borderWidth:2, hoverOffset:8
+    }]
+  },
+  options:{
+    cutout:'70%',plugins:{legend:{position:'bottom'}},
+    responsive:true
+  }
+});
+
+// ─── STATUS DOUGHNUT ──────────────────────────────────────
+mkChart('statusChart', {
+  type:'doughnut',
+  data:{
+    labels:['Delivered','Delayed','Failed'],
+    datasets:[{
+      data:[D.status_counts.delivered, D.status_counts.delayed, D.status_counts.failed],
+      backgroundColor:['#00e5b899','#f59e0b99','#ff3e6c99'],
+      borderColor:['#00e5b8','#f59e0b','#ff3e6c'],
+      borderWidth:2, hoverOffset:8
+    }]
+  },
+  options:{cutout:'70%',plugins:{legend:{position:'bottom'}},responsive:true}
+});
+
+// ─── PRIORITY DELAY BAR ───────────────────────────────────
+mkChart('priorityDelayChart', {
+  type:'bar',
+  data:{
+    labels:['High','Medium','Low'],
+    datasets:[{
+      label:'Delay Rate %',
+      data:[D.delay_by_priority.High, D.delay_by_priority.Medium, D.delay_by_priority.Low],
+      backgroundColor:['#ff3e6c99','#f59e0b99','#00e5b899'],
+      borderColor:['#ff3e6c','#f59e0b','#00e5b8'],
+      borderWidth:2, borderRadius:4
+    }]
+  },
+  options:{
+    responsive:true,plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{color:grid_color}},
+      y:{grid:{color:grid_color},beginAtZero:true,max:60,ticks:{callback:v=>v+'%'}}
+    }
+  }
+});
+
+// ─── AGENT CARDS ──────────────────────────────────────────
+const agentColors = ['#ff3e6c','#00e5b8','#a78bfa'];
+const agentGrid = document.getElementById('agent-grid');
+[1,2,3].forEach((aid,i)=>{
+  const s = D.agent_stats[String(aid)];
+  const maxKm = Math.max(...[1,2,3].map(a=>D.agent_stats[String(a)].total_km));
+  const pct = (s.total_km/maxKm*100).toFixed(1);
+  agentGrid.innerHTML += `
+  <div class="card agent-card" style="animation-delay:${i*0.08}s">
+    <div class="agent-glow" style="background:${agentColors[i]};"></div>
+    <div style="display:flex;align-items:flex-end;gap:.5rem;">
+      <div class="agent-num" style="color:${agentColors[i]};">${String(aid).padStart(2,'0')}</div>
+      <div style="margin-bottom:.6rem;">
+        <div class="agent-label">AGENT</div>
+        <div style="font-family:'DM Mono';font-size:.72rem;color:var(--text);">${s.deliveries.toLocaleString()} deliveries</div>
+      </div>
+    </div>
+    <div class="agent-km">${s.total_km.toLocaleString(undefined,{maximumFractionDigits:0})} km</div>
+    <div class="agent-pills">
+      <span class="pill pill-h">H: ${s.high.toLocaleString()}</span>
+      <span class="pill pill-m">M: ${s.medium.toLocaleString()}</span>
+      <span class="pill pill-l">L: ${s.low.toLocaleString()}</span>
+    </div>
+    <div class="balance-bar"><div class="balance-fill" style="width:${pct}%;"></div></div>
+    <div style="font-family:'DM Mono';font-size:.6rem;color:var(--muted);margin-top:.3rem;">${pct}% of max load</div>
+  </div>`;
+});
+
+// ─── AGENT STACKED BAR ────────────────────────────────────
+mkChart('agentStackChart', {
+  type:'bar',
+  data:{
+    labels:['Agent 1','Agent 2','Agent 3'],
+    datasets:[
+      {label:'High',data:[4171,4171,4170],backgroundColor:'#ff3e6c99',borderColor:'#ff3e6c',borderWidth:1.5,borderRadius:{topLeft:0,topRight:0,bottomLeft:3,bottomRight:3}},
+      {label:'Medium',data:[2100,2074,2128],backgroundColor:'#f59e0b99',borderColor:'#f59e0b',borderWidth:1.5},
+      {label:'Low',data:[2036,2089,2061],backgroundColor:'#00e5b899',borderColor:'#00e5b8',borderWidth:1.5,borderRadius:{topLeft:3,topRight:3,bottomLeft:0,bottomRight:0}}
+    ]
+  },
+  options:{
+    responsive:true,plugins:{legend:{position:'bottom'}},
+    scales:{
+      x:{grid:{color:grid_color},stacked:true},
+      y:{grid:{color:grid_color},stacked:true,beginAtZero:true,ticks:{callback:v=>v>=1000?v/1000+'k':v}}
+    }
+  }
+});
+
+// ─── AGENT DIST BAR ──────────────────────────────────────
+mkChart('agentDistChart', {
+  type:'bar',
+  data:{
+    labels:['Agent 1','Agent 2','Agent 3'],
+    datasets:[{
+      label:'Total Distance (km)',
+      data:[D.agent_stats['1'].total_km, D.agent_stats['2'].total_km, D.agent_stats['3'].total_km],
+      backgroundColor:['#ff3e6c55','#00e5b855','#a78bfa55'],
+      borderColor:['#ff3e6c','#00e5b8','#a78bfa'],
+      borderWidth:2, borderRadius:4
+    }]
+  },
+  options:{
+    responsive:true,plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{color:grid_color}},
+      y:{grid:{color:grid_color},ticks:{callback:v=>(v/1000).toFixed(0)+'k'},min:1252000}
+    }
+  }
+});
+
+// ─── WEATHER BARS ─────────────────────────────────────────
+const weatherIcons = {clear:'☀️',cold:'❄️',foggy:'🌫️',hot:'🔥',rainy:'🌧️',stormy:'⛈️'};
+const weatherList = document.getElementById('weather-list');
+const sortedWeather = Object.entries(D.weather_delay).sort((a,b)=>b[1]-a[1]);
+sortedWeather.forEach(([w,pct])=>{
+  const color = pct>35?'#ff3e6c':pct>25?'#f59e0b':'#00e5b8';
+  weatherList.innerHTML += `
+  <div class="w-row">
+    <span class="w-icon">${weatherIcons[w]||'🌤️'}</span>
+    <span class="w-name">${w}</span>
+    <div class="w-track"><div class="w-fill" style="width:${pct/50*100}%;background:${color};"></div></div>
+    <span class="w-pct">${pct}%</span>
+  </div>`;
+});
+
+// ─── REGION CHART ─────────────────────────────────────────
+const regions = Object.keys(D.region_avg.delivery_cost);
+mkChart('regionChart', {
+  type:'bar',
+  data:{
+    labels: regions.map(r=>r.charAt(0).toUpperCase()+r.slice(1)),
+    datasets:[{
+      label:'Avg Cost (₹)',
+      data: regions.map(r=>D.region_avg.delivery_cost[r]),
+      backgroundColor: COLORS.slice(0,5).map(c=>c+'88'),
+      borderColor: COLORS.slice(0,5),
+      borderWidth:2, borderRadius:4
+    }]
+  },
+  options:{
+    responsive:true,plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{color:grid_color}},
+      y:{grid:{color:grid_color},beginAtZero:false,min:840,ticks:{callback:v=>'₹'+v}}
+    }
+  }
+});
+
+// ─── FEATURE IMPORTANCE ───────────────────────────────────
+const fiPanel = document.getElementById('fi-panel');
+const fiColors = ['#ff3e6c','#a78bfa','#00e5b8','#f59e0b','#38bdf8','#fb7185','#34d399','#c084fc'];
+const fiNames = {
+  'delivery_rating':'Delivery Rating',
+  'Priority_enc':'Priority Level',
+  'delivery_cost':'Delivery Cost',
+  'distance_km':'Distance (km)',
+  'weather_condition_enc':'Weather Condition',
+  'package_weight_kg':'Package Weight',
+  'vehicle_type_enc':'Vehicle Type',
+  'region_enc':'Region'
+};
+Object.entries(D.ml_classifier.feature_importance).forEach(([key,pct],i)=>{
+  fiPanel.innerHTML += `
+  <div class="fi-bar">
+    <div class="fi-name">${fiNames[key]||key}</div>
+    <div class="fi-track"><div class="fi-fill" style="width:${pct}%;background:${fiColors[i]};"></div></div>
+    <div class="fi-pct">${pct}%</div>
+  </div>`;
+});
+
+// ─── CLUSTER CHART ────────────────────────────────────────
+const clusterNames = ['Far·High-Cost','Near·Low-Cost','Mid·Medium','Very Near·Cheap','Far·Med-Cost'];
+mkChart('clusterChart', {
+  type:'bubble',
+  data:{
+    datasets: [0,1,2,3,4].map((c,i)=>({
+      label: clusterNames[i],
+      data:[{
+        x: D.cluster_stats.avg_dist[String(c)],
+        y: D.cluster_stats.avg_cost[String(c)],
+        r: Math.sqrt(D.cluster_stats.count[String(c)]/50)
+      }],
+      backgroundColor: COLORS[i]+'66',
+      borderColor: COLORS[i],
+      borderWidth:2
+    }))
+  },
+  options:{
+    responsive:true,
+    plugins:{legend:{position:'bottom'}},
+    scales:{
+      x:{grid:{color:grid_color},title:{display:true,text:'Avg Distance (km)',color:'#6b6b88'}},
+      y:{grid:{color:grid_color},title:{display:true,text:'Avg Cost (₹)',color:'#6b6b88'}}
+    }
+  }
+});
+
+// ─── CLUSTER TABLE ────────────────────────────────────────
+const tbody = document.getElementById('cluster-body');
+[0,1,2,3,4].forEach(c=>{
+  const dr = D.cluster_stats.delay_rate[String(c)];
+  const color = dr>0.35?'#ff3e6c':dr>0.25?'#f59e0b':'#00e5b8';
+  const bg = dr>0.35?'rgba(255,62,108,.15)':dr>0.25?'rgba(245,158,11,.15)':'rgba(0,229,184,.15)';
+  tbody.innerHTML += `<tr>
+    <td style="color:${COLORS[c]};font-weight:600;">Cluster ${c}</td>
+    <td>${Number(D.cluster_stats.count[String(c)]).toLocaleString()}</td>
+    <td>${D.cluster_stats.avg_dist[String(c)]} km</td>
+    <td>₹${D.cluster_stats.avg_cost[String(c)]}</td>
+    <td><span class="delay-chip" style="background:${bg};color:${color};">${(dr*100).toFixed(0)}%</span></td>
+  </tr>`;
+});
+
+// ─── RATING CHART ─────────────────────────────────────────
+mkChart('ratingChart', {
+  type:'bar',
+  data:{
+    labels:['★1','★2','★3','★4','★5'],
+    datasets:[{
+      data:[D.rating_dist[1],D.rating_dist[2],D.rating_dist[3],D.rating_dist[4],D.rating_dist[5]],
+      backgroundColor:['#ff3e6c88','#f59e0b88','#a78bfa88','#38bdf888','#00e5b888'],
+      borderColor:['#ff3e6c','#f59e0b','#a78bfa','#38bdf8','#00e5b8'],
+      borderWidth:2, borderRadius:3
+    }]
+  },
+  options:{
+    responsive:true,plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{color:grid_color}},
+      y:{grid:{color:grid_color},beginAtZero:true,ticks:{callback:v=>v>=1000?v/1000+'k':v}}
+    }
+  }
+});
+
+// ─── COST PERCENTILES ─────────────────────────────────────
+mkChart('costPercChart', {
+  type:'bar',
+  data:{
+    labels:['P10','P25','P50 (Median)','P75','P90'],
+    datasets:[{
+      label:'Cost (₹)',
+      data:[D.cost_percentiles.p10,D.cost_percentiles.p25,D.cost_percentiles.p50,D.cost_percentiles.p75,D.cost_percentiles.p90],
+      backgroundColor: COLORS.slice(0,5).map(c=>c+'66'),
+      borderColor: COLORS.slice(0,5),
+      borderWidth:2, borderRadius:4
+    }]
+  },
+  options:{
+    responsive:true,plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{color:grid_color}},
+      y:{grid:{color:grid_color},beginAtZero:true,ticks:{callback:v=>'₹'+v.toLocaleString()}}
+    }
+  }
+});
+
+// ─── COST BY MODE ─────────────────────────────────────────
+const modes = Object.keys(D.cost_by_mode);
+mkChart('costModeChart', {
+  type:'radar',
+  data:{
+    labels: modes.map(m=>m.charAt(0).toUpperCase()+m.slice(1)),
+    datasets:[{
+      label:'Avg Cost (₹)',
+      data: modes.map(m=>D.cost_by_mode[m]),
+      backgroundColor:'rgba(167,139,250,.15)',
+      borderColor:'#a78bfa',
+      borderWidth:2,
+      pointBackgroundColor:'#a78bfa',
+      pointRadius:5
+    }]
+  },
+  options:{
+    responsive:true,
+    scales:{r:{grid:{color:grid_color},ticks:{backdropColor:'transparent',callback:v=>'₹'+v},pointLabels:{color:'#f0f0f8'}}},
+    plugins:{legend:{display:false}}
+  }
+});
+
+// ─── PARTNER CHART ────────────────────────────────────────
+const partners = Object.keys(D.partner_counts);
+mkChart('partnerChart', {
+  type:'bar',
+  data:{
+    labels: partners,
+    datasets:[{
+      label:'Deliveries',
+      data: partners.map(p=>D.partner_counts[p]),
+      backgroundColor: partners.map((_,i)=>COLORS[i%COLORS.length]+'88'),
+      borderColor: partners.map((_,i)=>COLORS[i%COLORS.length]),
+      borderWidth:2, borderRadius:4
+    }]
+  },
+  options:{
+    indexAxis:'y',responsive:true,plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{color:grid_color},beginAtZero:true,ticks:{callback:v=>v.toLocaleString()}},
+      y:{grid:{color:grid_color}}
+    }
+  }
+});
+
+// ─── VEHICLE DOUGHNUT ─────────────────────────────────────
+const vehicles = Object.keys(D.vehicle_type);
+mkChart('vehicleChart', {
+  type:'polarArea',
+  data:{
+    labels: vehicles.map(v=>v.charAt(0).toUpperCase()+v.slice(1)),
+    datasets:[{
+      data: vehicles.map(v=>D.vehicle_type[v]),
+      backgroundColor: vehicles.map((_,i)=>COLORS[i%COLORS.length]+'88'),
+      borderColor: vehicles.map((_,i)=>COLORS[i%COLORS.length]),
+      borderWidth:2
+    }]
+  },
+  options:{
+    responsive:true,
+    plugins:{legend:{position:'bottom'}},
+    scales:{r:{grid:{color:grid_color},ticks:{backdropColor:'transparent',callback:v=>v/1000+'k'}}}
+  }
+});
+
+// ─── AGENT STAR RATINGS ──────────────────────────────────
+const AGENTS_RATED = [
+  {
+    name: 'Agent Alpha', id: 1, color: '#ff3e6c',
+    star: 3.81,
+    on_time: 72.94,
+    avg_rating: 3.67,
+    perf_score: 78.0,
+    failure: 5.27,
+    high_pct: 50.21,
+    deliveries: 8307,
+    total_km: 1253153.7,
+    avg_cost: 867.23,
+  },
+  {
+    name: 'Agent Beta', id: 2, color: '#00e5b8',
+    star: 3.83,
+    on_time: 73.57,
+    avg_rating: 3.665,
+    perf_score: 78.23,
+    failure: 5.26,
+    high_pct: 50.05,
+    deliveries: 8334,
+    total_km: 1253253.7,
+    avg_cost: 865.06,
+  },
+  {
+    name: 'Agent Gamma', id: 3, color: '#a78bfa',
+    star: 3.82,
+    on_time: 73.47,
+    avg_rating: 3.664,
+    perf_score: 78.16,
+    failure: 5.41,
+    high_pct: 49.89,
+    deliveries: 8359,
+    total_km: 1253353.5,
+    avg_cost: 862.56,
+  }
+];
+
+function buildStarDisplay(score) {
+  const full = Math.floor(score);
+  const frac = score - full;
+  let html = '<div class="star-display">';
+  for(let i=0;i<5;i++){
+    const pct = i < full ? 100 : (i === full && frac > 0 ? Math.round(frac*100) : 0);
+    html += `<div class="star" style="position:relative;display:inline-block;width:22px;height:22px;">
+      <span style="position:absolute;color:#2a2a3a;font-size:1.2rem;line-height:1;">★</span>
+      <span style="position:absolute;color:#fbbf24;font-size:1.2rem;line-height:1;overflow:hidden;width:${pct}%;">★</span>
+    </div>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+const arGrid = document.getElementById('ar-grid');
+const rankLabel = ['🥇 Best Agent','🥈 2nd Place','🥉 3rd Place'];
+const sorted = [...AGENTS_RATED].sort((a,b)=>b.star-a.star);
+
+AGENTS_RATED.forEach((ag, i) => {
+  const rank = sorted.findIndex(s => s.name === ag.name);
+  const onTimePct = ag.on_time;
+  const ratingPct = (ag.avg_rating / 5) * 100;
+  const failColor = ag.failure > 6 ? '#ff3e6c' : ag.failure > 4 ? '#f59e0b' : '#00e5b8';
+
+  arGrid.innerHTML += `
+  <div class="ar-card" style="border-color:${ag.color}33;" >
+    <div class="ar-glow" style="background:${ag.color};"></div>
+    <div class="ar-header">
+      <div class="ar-avatar" style="background:linear-gradient(135deg,${ag.color},${ag.color}88);">${String(ag.id).padStart(2,'0')}</div>
+      <div class="ar-name-block">
+        <div class="ar-name">${ag.name}</div>
+        <div class="ar-role">Delivery Agent · ${ag.deliveries.toLocaleString()} orders</div>
+        <span class="ar-badge" style="background:${ag.color}22;color:${ag.color};border:1px solid ${ag.color}44;margin-top:.3rem;">${rankLabel[rank]}</span>
+      </div>
+    </div>
+
+    <div class="star-row">
+      <div>
+        ${buildStarDisplay(ag.star)}
+        <div style="font-family:'DM Mono';font-size:.6rem;color:var(--muted);margin-top:.3rem;">
+          ${ag.star.toFixed(2)} out of 5.00
+        </div>
+      </div>
+      <div style="margin-left:auto;text-align:right;">
+        <div style="font-family:'Bebas Neue';font-size:3rem;letter-spacing:.05em;color:${ag.color};line-height:1;">${ag.star.toFixed(2)}</div>
+        <div style="font-family:'DM Mono';font-size:.62rem;color:var(--muted);">★ STAR RATING</div>
+      </div>
+    </div>
+
+    <div class="ar-metric">
+      <span class="ar-metric-label">⏱ On-Time Rate</span>
+      <div class="ar-metric-bar"><div class="ar-metric-fill" style="width:${onTimePct}%;background:${ag.color};"></div></div>
+      <span class="ar-metric-val">${ag.on_time}%</span>
+    </div>
+    <div class="ar-metric">
+      <span class="ar-metric-label">⭐ Customer Rating</span>
+      <div class="ar-metric-bar"><div class="ar-metric-fill" style="width:${ratingPct}%;background:#fbbf24;"></div></div>
+      <span class="ar-metric-val" style="color:#fbbf24;">${ag.avg_rating}/5</span>
+    </div>
+    <div class="ar-metric">
+      <span class="ar-metric-label">📊 Perf Score</span>
+      <div class="ar-metric-bar"><div class="ar-metric-fill" style="width:${ag.perf_score}%;background:#a78bfa;"></div></div>
+      <span class="ar-metric-val">${ag.perf_score}/100</span>
+    </div>
+    <div class="ar-metric">
+      <span class="ar-metric-label">❌ Failure Rate</span>
+      <div class="ar-metric-bar"><div class="ar-metric-fill" style="width:${ag.failure*10}%;background:${failColor};"></div></div>
+      <span class="ar-metric-val" style="color:${failColor};">${ag.failure}%</span>
+    </div>
+    <div class="ar-metric">
+      <span class="ar-metric-label">🔴 High Priority %</span>
+      <div class="ar-metric-bar"><div class="ar-metric-fill" style="width:${ag.high_pct}%;background:#ff3e6c;"></div></div>
+      <span class="ar-metric-val">${ag.high_pct}%</span>
+    </div>
+    <div class="ar-metric">
+      <span class="ar-metric-label">📦 Total Distance</span>
+      <span class="ar-metric-val">${(ag.total_km/1000).toFixed(1)}K km</span>
+    </div>
+    <div class="ar-metric">
+      <span class="ar-metric-label">💰 Avg Cost/Delivery</span>
+      <span class="ar-metric-val">₹${ag.avg_cost}</span>
+    </div>
+  </div>`;
+});
+
+</script>
+</body>
+</html>
